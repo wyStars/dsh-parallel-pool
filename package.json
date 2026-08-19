@@ -1,0 +1,18 @@
+{
+  "name": "@dsh-external/dsh-parallel-pool",
+  "version": "0.0.1",
+  "description": "动态滚动窗口子代理任务池：一次调用跑完整批独立任务，内部自动补位",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "license": "BSD-3-Clause",
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.0.1-rc <2"
+  },
+  "scripts": {
+    "build": "bash scripts/build.sh"
+  }
+}
