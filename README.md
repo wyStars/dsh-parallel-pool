@@ -26,6 +26,10 @@ parallel_pool {
   `run.dispose()` 释放。
 - 结算回调中触发补位：`active < maxConcurrency` 且队列非空即派发。
 - `exec.signal` 中止时停止补位并立即返回部分结果（未启动任务标记 `skipped`）。
+- **失败详情富化（v0.0.2）**：子代理失败（如模型路由 402 余额不足）时，经
+  `subagent/end` 事件定位子会话，回读 `turn/end` 底层错误并入结果 `error` 字段，
+  避免外部故障被误判为插件问题。
+- `signal` 始终显式提供（spawn 路径要求存在），缺失时用一次性独立控制器兜底。
 - 所有注册挂 `ctx.effect`：卸载/热重载自动清理。
 
 ## 构建 / 注入 / 卸载（dsh-super-injector 通道）

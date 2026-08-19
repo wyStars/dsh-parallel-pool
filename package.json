@@ -1,6 +1,6 @@
 {
   "name": "@dsh-external/dsh-parallel-pool",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "动态滚动窗口子代理任务池：一次调用跑完整批独立任务，内部自动补位",
   "private": true,
   "type": "module",
