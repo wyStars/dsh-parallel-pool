@@ -1,9 +1,8 @@
 # dsh-parallel-pool — 动态滚动窗口子代理任务池
 
-解决主对话并发派发子代理时的**轮次屏障**问题：现有模式需要等"整轮"所有子代理
-结束才开始下一轮，慢任务拖慢全批。本插件提供 `parallel_pool` 工具：一次调用
-传入任务列表 + 并发上限，内部实现**滚动窗口调度**——任何子代理一结束立刻补位
-下一个任务（不等整轮），全部结算后一次性返回每个任务的结果与起止时间线。
+把"整批独立任务"一次交给任务池，**主对话不阻塞**：后台运行时滚动窗口补位
+（任何子代理一结束立刻派发下一任务，不等整轮），全批结算后完整结果与时间线
+作为会话消息自动投递、唤醒主对话。
 
 ## 用法（模型可见工具）
 
@@ -13,11 +12,18 @@ parallel_pool {
   maxConcurrency?: 2,                                // 默认 4，范围 1..16
   provider?: 'spawn' | 'fork',                       // 默认 'spawn'（全新子代理）
   failFast?: false,                                  // 首个失败后停止补位
+  background?: true,                                 // 默认后台：返回 job id，结果消息投递
 }
 ```
 
-返回：`total/completed/failed/aborted/skipped`、总耗时、峰值并发、
-`rollingRefill`（是否发生了补位）以及每个任务的结果与 `startedAt/endedAt` 时间线。
+- **后台模式（默认）**：立即返回 `{kind:'background', jobId}`（毫秒级），池在
+  后台滚动调度；全批结算后完整结果（含每任务 `startedAt/endedAt` 时间线）作为
+  会话消息投递。`job_output`/`job_kill` 对该 id 可用；kill 时投递部分结果。
+- **前台模式（background: false）**：等待整批完成，结果内联返回。
+- 返回汇总：`total/completed/failed/aborted/skipped`、总耗时、峰值并发、
+  `rollingRefill`（是否发生补位）、每任务结果与时间线。
+- 系统提示引导：对 2+ 独立任务整批交给 parallel_pool，而不是手动逐波派发
+  subagent（引导段 order 110，早于官方 tool-subagent 的 116.5）。
 
 ## 设计
 
@@ -25,7 +31,9 @@ parallel_pool {
   一次性子代理（对齐官方 `tool-subagent` 模式），`run.result` 结算、
   `run.dispose()` 释放。
 - 结算回调中触发补位：`active < maxConcurrency` 且队列非空即派发。
-- `exec.signal` 中止时停止补位并立即返回部分结果（未启动任务标记 `skipped`）。
+- **后台 job 无主注册**（对齐 dsh-shell-callback）：tool-jobs 监听器对无主
+  job 直接 return，本插件 onJobDone 回调成为唯一通知者；`attachController`
+  使无主 start 通过前置检查；回调经 `agent.followup`/`agent.inject` 投递。
 - **失败详情富化（v0.0.2）**：子代理失败（如模型路由 402 余额不足）时，经
   `subagent/end` 事件定位子会话，回读 `turn/end` 底层错误并入结果 `error` 字段，
   避免外部故障被误判为插件问题。
@@ -35,8 +43,12 @@ parallel_pool {
 ## 构建 / 注入 / 卸载（dsh-super-injector 通道）
 
 ```bash
-bash scripts/build.sh   # junction 链接 @deepseek-ai/dsh-tools + node --check
+bash scripts/build.sh   # 依赖落地 + 语法/导入链校验
 ```
 
-或经注入器工具：`dev_build_plugin` → `dev_inject_plugin` →
-`dev_reload_package dsh-parallel-pool`（热重载）→ `dev_uninject_plugin`（卸载）。
+依赖落地策略（loader 内部解析器实测只认包根 index.js、不读 package.json）：
+dsh-tools 走 junction；dsh-llm 及其传递闭包（cordis/cosmokit/schemastery/
+dsh-timeout）复制为真实目录副本并生成包根 index.js 再导出垫片。
+
+注入器工具：`dev_build_plugin` → `dev_inject_plugin` →
+`dev_uninject_plugin`（卸载）。
