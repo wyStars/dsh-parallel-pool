@@ -27,9 +27,10 @@ parallel_pool {
 
 ## 设计
 
-- 基于 `ctx.subagents.start(provider, { label, prompt, parent, signal })` 派生
-  一次性子代理（对齐官方 `tool-subagent` 模式），`run.result` 结算、
-  `run.dispose()` 释放。
+- 基于 `ctx.subagents.startContinuable({provider, label, request, signal})` 派生
+  **continuable 子代理（v0.2.0，对齐默认 subagent 工具）**：子代理面板实时
+  可见（running 徽标）、完成后保留为可续跑子代理、平台原生完成通知；
+  `subagent/end` 事件结算 `{stopReason, lastAssistantMessage}`。
 - 结算回调中触发补位：`active < maxConcurrency` 且队列非空即派发。
 - **后台 job 无主注册**（对齐 dsh-shell-callback）：tool-jobs 监听器对无主
   job 直接 return，本插件 onJobDone 回调成为唯一通知者；`attachController`
@@ -37,7 +38,7 @@ parallel_pool {
 - **失败详情富化（v0.0.2）**：子代理失败（如模型路由 402 余额不足）时，经
   `subagent/end` 事件定位子会话，回读 `turn/end` 底层错误并入结果 `error` 字段，
   避免外部故障被误判为插件问题。
-- `signal` 始终显式提供（spawn 路径要求存在），缺失时用一次性独立控制器兜底。
+- 中止时停止补位并逐个 `interrupt` in-flight 子代理，未启动任务标记 `skipped`。
 - 所有注册挂 `ctx.effect`：卸载/热重载自动清理。
 
 ## 构建 / 注入 / 卸载（dsh-super-injector 通道）
