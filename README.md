@@ -18,12 +18,15 @@ parallel_pool {
 
 - **后台模式（默认）**：立即返回 `{kind:'background', jobId}`（毫秒级），池在
   后台滚动调度；全批结算后完整结果（含每任务 `startedAt/endedAt` 时间线）作为
-  会话消息投递。`job_output`/`job_kill` 对该 id 可用；kill 时投递部分结果。
-- **前台模式（background: false）**：等待整批完成，结果内联返回。
+  会话消息投递。**`job_output` 实时返回每任务进度与终态富文本（v0.3.0）**；
+  `job_kill` 中止批任务并投递部分结果。
+- **前台模式（background: false）**：等待整批完成，结果内联返回（仅建议
+  小批量快速任务）。
 - 返回汇总：`total/completed/failed/aborted/skipped`、总耗时、峰值并发、
   `rollingRefill`（是否发生补位）、每任务结果与时间线。
 - 系统提示引导：对 2+ 独立任务整批交给 parallel_pool，而不是手动逐波派发
   subagent（引导段 order 110，早于官方 tool-subagent 的 116.5）。
+- **宽松校验（v0.3.0）**：`model`/`description` 为空字符串视为未提供。
 
 ## 设计
 
@@ -32,6 +35,9 @@ parallel_pool {
   可见（running 徽标）、完成后保留为可续跑子代理、平台原生完成通知；
   `subagent/end` 事件结算 `{stopReason, lastAssistantMessage}`。
 - 结算回调中触发补位：`active < maxConcurrency` 且队列非空即派发。
+- **job readOutput（v0.3.0）**：每任务结算即更新进度文本（`N/M settled` +
+  逐行结果），`job_output` 实时可见；终态输出完整汇总——模型自行轮询也能
+  拿到富文本结果，不再只有裸状态串。
 - **后台 job 无主注册**（对齐 dsh-shell-callback）：tool-jobs 监听器对无主
   job 直接 return，本插件 onJobDone 回调成为唯一通知者；`attachController`
   使无主 start 通过前置检查；回调经 `agent.followup`/`agent.inject` 投递。
