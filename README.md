@@ -36,6 +36,14 @@ parallel_pool {
   Web 会话回显与子代理目录的加载负载不再随任务数增长（实测：189 个子代理
   → `listChildren` 13.6s，每冷子代理折叠 ~68ms；64 任务批次旧引擎产生 64 个
   子会话，新引擎仅 maxConcurrency 个）。
+- **健壮性（v0.5.0）**：
+  - `taskTimeoutMs`（默认 30min，0=不限）：单任务超时 → interrupt 子代理 +
+    记 failed，防 worker 挂死导致整批永不结算；
+  - `maxRetries`（默认 1，0..3）：失败自动重试（换新子代理执行，
+    `retryDelayMs` 默认 5s），覆盖瞬态故障（配额抖动/网络）；
+  - `tasksPerWorker`（默认 12）：每 worker 处理任务数上限，到点退役换新，
+    防长批下上下文累积污染；
+  - per-run 事件监听：只登记本池在途子代理的结算事件，随 run 注销零噪音。
 - **job readOutput（v0.3.0）**：每任务结算即更新进度文本（`N/M settled` +
   逐行结果），`job_output` 实时可见；终态输出完整汇总——模型自行轮询也能
   拿到富文本结果，不再只有裸状态串。
