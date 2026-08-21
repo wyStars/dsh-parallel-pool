@@ -57,7 +57,16 @@ parallel_pool {
   记录已结算结果），未启动任务标记 `skipped`。
 - 所有注册挂 `ctx.effect`：卸载/热重载自动清理。
 
-## 构建 / 注入 / 卸载（dsh-super-injector 通道）
+## 安装（npm / dsh plugin）
+
+```bash
+dsh plugin --profile web add @stars-w/dsh-parallel-pool
+```
+
+包已发布到 npm（public），安装后会自动追加到 profile 的
+`dsh.profile.bundles`，作为标准 bundle 加载。
+
+## 本地开发 / 构建 / 注入
 
 ```bash
 bash scripts/build.sh   # 依赖落地 + 语法/导入链校验
@@ -67,5 +76,5 @@ bash scripts/build.sh   # 依赖落地 + 语法/导入链校验
 dsh-tools 走 junction；dsh-llm 及其传递闭包（cordis/cosmokit/schemastery/
 dsh-timeout）复制为真实目录副本并生成包根 index.js 再导出垫片。
 
-注入器工具：`dev_build_plugin` → `dev_inject_plugin` →
+本地注入器工具：`dev_build_plugin` → `dev_inject_plugin` →
 `dev_uninject_plugin`（卸载）。

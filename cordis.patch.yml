@@ -1,0 +1,5 @@
+# dsh-parallel-pool bundle 层：把本包作为 host 半 cordis 插件加载。
+# （parallel_pool 工具仅 host 半，无 client 半。）
+- insert:
+    - id: dsh-parallel-pool
+      name: '@dsh-external/dsh-parallel-pool'

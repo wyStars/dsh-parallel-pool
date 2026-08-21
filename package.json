@@ -2,11 +2,13 @@
   "name": "@dsh-external/dsh-parallel-pool",
   "version": "0.5.0",
   "description": "动态滚动窗口子代理任务池：一次调用跑完整批独立任务，内部滚动补位，后台运行不阻塞主对话",
-  "private": true,
   "type": "module",
   "main": "./lib/index.js",
   "files": [
-    "lib"
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
   ],
   "license": "BSD-3-Clause",
   "peerDependencies": {
@@ -15,5 +17,10 @@
   },
   "scripts": {
     "build": "bash scripts/build.sh"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }
