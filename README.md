@@ -30,11 +30,12 @@ parallel_pool {
 
 ## 设计
 
-- 基于 `ctx.subagents.startContinuable({provider, label, request, signal})` 派生
-  **continuable 子代理（v0.2.0，对齐默认 subagent 工具）**：子代理面板实时
-  可见（running 徽标）、完成后保留为可续跑子代理、平台原生完成通知；
-  `subagent/end` 事件结算 `{stopReason, lastAssistantMessage}`。
-- 结算回调中触发补位：`active < maxConcurrency` 且队列非空即派发。
+- **工作器池（v0.4.0，性能优化）**：持久子代理数 = 并发数而非任务数——
+  每个 worker 串行处理任务（首任务随 `startContinuable` 创建派发，后续经
+  `subagents.followup`），每任务一回合、`subagent/end` 逐回合结算。
+  Web 会话回显与子代理目录的加载负载不再随任务数增长（实测：189 个子代理
+  → `listChildren` 13.6s，每冷子代理折叠 ~68ms；64 任务批次旧引擎产生 64 个
+  子会话，新引擎仅 maxConcurrency 个）。
 - **job readOutput（v0.3.0）**：每任务结算即更新进度文本（`N/M settled` +
   逐行结果），`job_output` 实时可见；终态输出完整汇总——模型自行轮询也能
   拿到富文本结果，不再只有裸状态串。
@@ -44,7 +45,8 @@ parallel_pool {
 - **失败详情富化（v0.0.2）**：子代理失败（如模型路由 402 余额不足）时，经
   `subagent/end` 事件定位子会话，回读 `turn/end` 底层错误并入结果 `error` 字段，
   避免外部故障被误判为插件问题。
-- 中止时停止补位并逐个 `interrupt` in-flight 子代理，未启动任务标记 `skipped`。
+- 中止时停止派发并逐个 `interrupt` in-flight 子代理（1s 宽限期等待 worker
+  记录已结算结果），未启动任务标记 `skipped`。
 - 所有注册挂 `ctx.effect`：卸载/热重载自动清理。
 
 ## 构建 / 注入 / 卸载（dsh-super-injector 通道）
