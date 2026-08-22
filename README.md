@@ -1,8 +1,8 @@
 # dsh-parallel-pool — 动态滚动窗口子代理任务池
 
-把"整批独立任务"一次交给任务池，**主对话不阻塞**：后台运行时滚动窗口补位
-（任何子代理一结束立刻派发下一任务，不等整轮），全批结算后完整结果与时间线
-作为会话消息自动投递、唤醒主对话。
+把"整批独立任务"一次交给任务池，**主对话始终不阻塞**：提交后立即返回 job id，
+后台滚动窗口补位（任何子代理一结束立刻派发下一任务，不等整轮）；每个子任务
+结算时立即把该任务结果投递给主对话，整批结束后再投递完整汇总与时间线。
 
 ## 用法（模型可见工具）
 
@@ -12,16 +12,16 @@ parallel_pool {
   maxConcurrency?: 2,                                // 默认 4，范围 1..16
   provider?: 'spawn' | 'fork',                       // 默认 'spawn'（全新子代理）
   failFast?: false,                                  // 首个失败后停止补位
-  background?: true,                                 // 默认后台：返回 job id，结果消息投递
+  background?: true,                                 // 兼容参数；始终非阻塞，返回 job id 并增量推送
 }
 ```
 
-- **后台模式（默认）**：立即返回 `{kind:'background', jobId}`（毫秒级），池在
-  后台滚动调度；全批结算后完整结果（含每任务 `startedAt/endedAt` 时间线）作为
-  会话消息投递。**`job_output` 实时返回每任务进度与终态富文本（v0.3.0）**；
-  `job_kill` 中止批任务并投递部分结果。
-- **前台模式（background: false）**：等待整批完成，结果内联返回（仅建议
-  小批量快速任务）。
+- **始终非阻塞**：无论 `background` 是否为 false，都立即返回
+  `{kind:'background', jobId}`（毫秒级），池在后台滚动调度；**每个子任务结算
+  时立即向主对话投递该任务结果**，主对话无需等待整批结束即可及时处理。
+  **`job_output` 实时返回每任务进度与终态富文本（v0.3.0）**；`job_kill`
+  中止批任务并投递部分结果。
+- 整批结束后仍会投递完整汇总（含每任务 `startedAt/endedAt` 时间线）。
 - 返回汇总：`total/completed/failed/aborted/skipped`、总耗时、峰值并发、
   `rollingRefill`（是否发生补位）、每任务结果与时间线。
 - 系统提示引导：对 2+ 独立任务整批交给 parallel_pool，而不是手动逐波派发
@@ -65,6 +65,15 @@ dsh plugin --profile web add @stars-w/dsh-parallel-pool
 
 包已发布到 npm（public），安装后会自动追加到 profile 的
 `dsh.profile.bundles`，作为标准 bundle 加载。
+
+## Web 插件配置
+
+在 Web 插件配置页中可设置默认并发数：
+
+- `maxConcurrency`：默认 4，范围 1..16。
+
+修改后下一次调用 `parallel_pool` 即生效；单次调用仍可用参数 `maxConcurrency`
+临时覆盖该默认值。
 
 ## 本地开发 / 构建 / 注入
 

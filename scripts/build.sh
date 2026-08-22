@@ -65,6 +65,7 @@ copy_pkg_with_shim() {
 echo "=== Landing runtime deps (deploy: $DEPLOY_MODULES) ==="
 mkdir -p node_modules/@deepseek-ai
 link_pkg "@deepseek-ai/dsh-tools"
+link_pkg "@deepseek-ai/dsh-settings"
 copy_pkg_with_shim "@deepseek-ai/dsh-llm"
 copy_pkg_with_shim "@deepseek-ai/cordis"
 copy_pkg_with_shim "@deepseek-ai/cosmokit"
