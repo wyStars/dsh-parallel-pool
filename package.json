@@ -1,9 +1,14 @@
 {
   "name": "@dsh-external/dsh-parallel-pool",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "动态滚动窗口子代理任务池：一次调用跑完整批独立任务，内部滚动补位，后台运行不阻塞主对话",
   "type": "module",
   "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
   "files": [
     "lib",
     "cordis.patch.yml",
@@ -21,6 +26,9 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
     }
   }
 }
